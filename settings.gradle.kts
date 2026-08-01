@@ -1,15 +1,18 @@
+rootProject.name = "NulChat"
+
 pluginManagement {
     repositories {
         google()
-        mavenCentral()
         gradlePluginPortal()
+        mavenCentral()
     }
 }
+
 dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
     }
 }
-rootProject.name = "NulChat"
-include(":app")
+
+include(":composeApp")
