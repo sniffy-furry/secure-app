@@ -24,6 +24,16 @@ android {
     }
 }
 
+// One of the newer dependencies below (Tink or security-crypto) pulls in
+// androidx.annotation:annotation-jvm, which duplicates classes already
+// provided by the older androidx.annotation:annotation that appcompat/
+// material pull in. Both artifacts ship the same classes under the same
+// package, so excluding the old one everywhere is safe -- annotation-jvm
+// is the newer split-artifact replacement, not a different API.
+configurations.all {
+    exclude group: 'androidx.annotation', module: 'annotation'
+}
+
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'androidx.fragment:fragment:1.6.2'
