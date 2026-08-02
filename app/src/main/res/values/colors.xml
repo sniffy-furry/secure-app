@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="background_deep">#FF1E1E2E</color>
+    <color name="background_panel">#FF2B2D3A</color>
+    <color name="background_chat">#FF36393F</color>
+    <color name="accent_purple">#FF7C3AED</color>
+    <color name="text_primary">#FFFFFFFF</color>
+    <color name="text_secondary">#FFDCDDDE</color>
+    <color name="online_green">#FF3BA55D</color>
+</resources>

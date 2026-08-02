@@ -1,4 +1,4 @@
-name: Android Build
+name: Android Build (Java)
 
 on:
   push:
@@ -20,33 +20,36 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      # GitHub-hosted ubuntu-latest runners already have the Android SDK
-      # preinstalled (ANDROID_HOME is set), so no separate SDK setup step is
-      # needed here. If you switch to a self-hosted runner, add
-      # android-actions/setup-android@v3 before this step.
+      - name: Sanity-check gradle.properties is present
+        run: |
+          if [ ! -f gradle.properties ]; then
+            echo "::error::gradle.properties is missing from the repo root."
+            exit 1
+          fi
+          cat gradle.properties
 
-      # No gradlew is committed to this repo (see README) — this action
-      # installs the requested Gradle version itself and also gives you
-      # dependency caching between runs for free.
+      - name: Paste-in check for the BIP-39 wordlist
+        run: |
+          COUNT=$(grep -o '"[a-z]*"' app/src/main/java/com/nulchat/identity/Wordlist.java | wc -l)
+          echo "Wordlist currently has $COUNT entries (needs 2048)."
+          if [ "$COUNT" -lt 2048 ]; then
+            echo "::warning::Wordlist.java does not yet contain the full 2048-word BIP-39 list — the app will crash on launch until it does. See README.md."
+          fi
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
 
-      - name: Paste-in check for the BIP-39 wordlist
-        run: |
-          COUNT=$(grep -o '"[a-z]*"' composeApp/src/commonMain/kotlin/com/nulchat/identity/Wordlist.kt | wc -l)
-          echo "Wordlist currently has $COUNT entries (needs 2048)."
-          if [ "$COUNT" -lt 2048 ]; then
-            echo "::warning::Wordlist.kt does not yet contain the full 2048-word BIP-39 list — the app will crash on launch until it does. See README.md."
-          fi
-
       - name: Build debug APK
-        run: gradle assembleDebug --stacktrace
+        run: >
+          gradle assembleDebug --stacktrace
+          -Pandroid.useAndroidX=true
+          -Pandroid.nonTransitiveRClass=true
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: nulchat-debug-apk
-          path: composeApp/build/outputs/apk/debug/*.apk
+          path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
