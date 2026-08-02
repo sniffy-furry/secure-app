@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="status_options">
+        <item>online</item>
+        <item>away</item>
+        <item>busy</item>
+        <item>offline</item>
+    </string-array>
+</resources>

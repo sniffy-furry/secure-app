@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ink">#0A0C10</color>
+    <color name="surface">#12151C</color>
+    <color name="surfaceRaised">#171B24</color>
+    <color name="line">#232838</color>
+    <color name="text">#C9D3DE</color>
+    <color name="textDim">#6B7684</color>
+    <color name="signal">#4FD1C5</color>
+    <color name="signalDim">#2E6E68</color>
+    <color name="warn">#E8A33D</color>
+    <color name="danger">#E8636B</color>
+    <color name="white">#FFFFFF</color>
+</resources>

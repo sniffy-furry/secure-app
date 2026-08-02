@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <EditText
+        android:id="@+id/input_invite_string"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_input"
+        android:padding="12dp"
+        android:layout_marginBottom="12dp"
+        android:hint="@string/add_contact_hint"
+        android:textColorHint="@color/textDim"
+        android:textColor="@color/text"
+        android:inputType="textUri"/>
+
+    <EditText
+        android:id="@+id/input_contact_nickname"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_input"
+        android:padding="12dp"
+        android:hint="@string/add_contact_nickname_hint"
+        android:textColorHint="@color/textDim"
+        android:textColor="@color/text"
+        android:inputType="textPersonName"/>
+
+</LinearLayout>

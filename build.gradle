@@ -1,0 +1,23 @@
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        // If AIDE's bundled toolchain is older, lowering this (e.g. 7.4.2)
+        // and the compileSdk/targetSdk values in app/build.gradle together
+        // is the usual fix -- see README "If it doesn't compile as-is".
+        classpath 'com.android.tools.build:gradle:8.1.4'
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}

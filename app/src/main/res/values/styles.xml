@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.MuleChat" parent="Theme.MaterialComponents.NoActionBar">
+        <item name="colorPrimary">@color/signal</item>
+        <item name="colorPrimaryDark">@color/ink</item>
+        <item name="colorAccent">@color/signal</item>
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOnSurface">@color/text</item>
+        <item name="android:windowBackground">@color/ink</item>
+        <item name="android:textColorPrimary">@color/text</item>
+        <item name="android:textColorSecondary">@color/textDim</item>
+        <item name="android:navigationBarColor">@color/ink</item>
+        <item name="android:statusBarColor">@color/ink</item>
+    </style>
+
+    <style name="Label">
+        <item name="android:textColor">@color/textDim</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:letterSpacing">0.04</item>
+        <item name="android:textAllCaps">true</item>
+    </style>
+
+    <style name="ShellNote">
+        <item name="android:textColor">@color/textDim</item>
+        <item name="android:textSize">12sp</item>
+    </style>
+
+    <style name="PrimaryButton" parent="Widget.MaterialComponents.Button">
+        <item name="backgroundTint">@color/signal</item>
+        <item name="android:textColor">@color/ink</item>
+    </style>
+
+    <style name="GhostButton" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="strokeColor">@color/line</item>
+        <item name="android:textColor">@color/text</item>
+    </style>
+
+</resources>
