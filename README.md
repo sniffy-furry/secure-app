@@ -1,4 +1,4 @@
-# NulChat — Java rewrite (AIDE Pro-friendly)
+# NulChat — Java rewrite
 
 This replaces the earlier Kotlin Multiplatform/Compose version. Reasons for
 the switch (see chat history if you want the full reasoning):
