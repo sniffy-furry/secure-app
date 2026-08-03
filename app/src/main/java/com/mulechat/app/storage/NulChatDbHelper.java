@@ -62,6 +62,7 @@ public final class NulChatDbHelper extends SQLiteOpenHelper {
                         "peerId TEXT PRIMARY KEY NOT NULL, " +
                         "displayName TEXT NOT NULL DEFAULT '', " +
                         "ed25519PublicKey BLOB NOT NULL, " +
+                        "x25519IdentityKey BLOB, " +
                         "lastKnownHost TEXT, " +
                         "lastKnownPort INTEGER)"
         );
@@ -81,6 +82,30 @@ public final class NulChatDbHelper extends SQLiteOpenHelper {
                         "peerId TEXT PRIMARY KEY NOT NULL REFERENCES Peer(peerId) ON DELETE CASCADE, " +
                         "sessionBlob BLOB NOT NULL, " +
                         "updatedAtEpochMs INTEGER NOT NULL)"
+        );
+
+        // Our own X3DH prekeys -- see crypto.X3DH and data.NulChatRepository's
+        // "X3DH prekeys" section. Single active row, same id=0 pattern as
+        // IdentityRow; replaced wholesale on rotation (not implemented yet).
+        db.execSQL(
+                "CREATE TABLE SignedPreKey (" +
+                        "id INTEGER PRIMARY KEY NOT NULL DEFAULT 0 CHECK (id = 0), " +
+                        "keyId INTEGER NOT NULL, " +
+                        "publicKey BLOB NOT NULL, " +
+                        "privateKey BLOB NOT NULL, " +
+                        "signature BLOB NOT NULL, " +
+                        "createdAtEpochMs INTEGER NOT NULL)"
+        );
+
+        // Our pool of single-use prekeys. One gets claimed (and marked used)
+        // each time we assemble a PreKeyBundle to publish.
+        db.execSQL(
+                "CREATE TABLE OneTimePreKey (" +
+                        "keyId INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                        "publicKey BLOB NOT NULL, " +
+                        "privateKey BLOB NOT NULL, " +
+                        "used INTEGER NOT NULL DEFAULT 0, " +
+                        "createdAtEpochMs INTEGER NOT NULL)"
         );
     }
 

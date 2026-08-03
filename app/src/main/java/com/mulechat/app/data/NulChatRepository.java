@@ -3,10 +3,16 @@ package com.mulechat.app.data;
 import android.content.ContentValues;
 import android.database.Cursor;
 
+import com.mulechat.app.crypto.OneTimePreKey;
+import com.mulechat.app.crypto.PreKeyBundle;
+import com.mulechat.app.crypto.SignedPreKey;
+import com.mulechat.app.crypto.X25519KeyPair;
+import com.mulechat.app.crypto.X3DH;
 import com.mulechat.app.identity.Identity;
 
 import net.sqlcipher.database.SQLiteDatabase;
 
+import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
@@ -90,6 +96,7 @@ public final class NulChatRepository {
         if (existing != null) {
             values.put("lastKnownHost", existing.lastKnownHost);
             if (existing.lastKnownPort != null) values.put("lastKnownPort", existing.lastKnownPort);
+            if (existing.x25519IdentityKey != null) values.put("x25519IdentityKey", existing.x25519IdentityKey);
         }
         db.replace("Peer", null, values);
     }
@@ -114,13 +121,23 @@ public final class NulChatRepository {
     private PeerContact cursorToPeer(Cursor cursor) {
         int portIndex = cursor.getColumnIndexOrThrow("lastKnownPort");
         Integer port = cursor.isNull(portIndex) ? null : cursor.getInt(portIndex);
+        int x25519Index = cursor.getColumnIndexOrThrow("x25519IdentityKey");
+        byte[] x25519IdentityKey = cursor.isNull(x25519Index) ? null : cursor.getBlob(x25519Index);
         return new PeerContact(
                 cursor.getString(cursor.getColumnIndexOrThrow("peerId")),
                 cursor.getString(cursor.getColumnIndexOrThrow("displayName")),
                 cursor.getBlob(cursor.getColumnIndexOrThrow("ed25519PublicKey")),
+                x25519IdentityKey,
                 cursor.getString(cursor.getColumnIndexOrThrow("lastKnownHost")),
                 port
         );
+    }
+
+    /** Pins a peer's X3DH identity key the first time we see it (in their first PreKeyBundle). */
+    public void pinPeerX25519IdentityKey(String peerId, byte[] x25519IdentityKey) {
+        ContentValues values = new ContentValues();
+        values.put("x25519IdentityKey", x25519IdentityKey);
+        db.update("Peer", values, "peerId = ?", new String[]{peerId});
     }
 
     public void updatePeerNetworkLocation(String peerId, String host, int port) {
@@ -155,6 +172,148 @@ public final class NulChatRepository {
 
     public void deleteRatchetSession(String peerId) {
         db.delete("RatchetSession", "peerId = ?", new String[]{peerId});
+    }
+
+    // ---- X3DH prekeys ----
+    //
+    // Everything a peer needs to start a session with us without either of
+    // us being online at the same time -- see crypto.X3DH. The signed
+    // prekey is one row (id = 0, replace on rotation, same pattern as
+    // IdentityRow); the one-time prekey pool is a table of single-use rows
+    // consumed as bundles go out. Neither rotation nor pool replenishment
+    // is wired up yet -- ensurePreKeysExist only ever generates once, right
+    // after identity creation.
+
+    private static final int ONE_TIME_PREKEY_BATCH = 20;
+
+    /**
+     * Generates and stores our signed prekey plus a batch of one-time
+     * prekeys if we don't have any yet. Call once, right after
+     * saveIdentity() (see OnboardingActivity / RecoveryPhraseActivity).
+     * Safe to call again later -- does nothing if a signed prekey already
+     * exists.
+     */
+    public void ensurePreKeysExist(Identity identity) throws GeneralSecurityException {
+        if (getSignedPreKey() != null) return;
+        SignedPreKey signedPreKey = X3DH.generateSignedPreKey(identity.privateKey, 1);
+        saveSignedPreKey(signedPreKey);
+        saveOneTimePreKeys(X3DH.generateOneTimePreKeys(ONE_TIME_PREKEY_BATCH));
+    }
+
+    public void saveSignedPreKey(SignedPreKey signedPreKey) {
+        ContentValues values = new ContentValues();
+        values.put("id", 0);
+        values.put("keyId", signedPreKey.keyId);
+        values.put("publicKey", signedPreKey.keyPair.publicKey);
+        values.put("privateKey", signedPreKey.keyPair.secretKey);
+        values.put("signature", signedPreKey.signature);
+        values.put("createdAtEpochMs", System.currentTimeMillis());
+        db.replace("SignedPreKey", null, values);
+    }
+
+    /** Returns null if ensurePreKeysExist() hasn't run yet. */
+    public SignedPreKey getSignedPreKey() {
+        try (Cursor cursor = db.query("SignedPreKey", null, "id = 0", null, null, null, null)) {
+            if (!cursor.moveToFirst()) return null;
+            int keyId = cursor.getInt(cursor.getColumnIndexOrThrow("keyId"));
+            byte[] publicKey = cursor.getBlob(cursor.getColumnIndexOrThrow("publicKey"));
+            byte[] privateKey = cursor.getBlob(cursor.getColumnIndexOrThrow("privateKey"));
+            byte[] signature = cursor.getBlob(cursor.getColumnIndexOrThrow("signature"));
+            return new SignedPreKey(keyId, new X25519KeyPair(privateKey, publicKey), signature);
+        }
+    }
+
+    public void saveOneTimePreKeys(List<OneTimePreKey> keys) {
+        db.beginTransaction();
+        try {
+            for (OneTimePreKey key : keys) {
+                ContentValues values = new ContentValues();
+                values.put("publicKey", key.keyPair.publicKey);
+                values.put("privateKey", key.keyPair.secretKey);
+                values.put("used", 0);
+                values.put("createdAtEpochMs", System.currentTimeMillis());
+                db.insert("OneTimePreKey", null, values);
+            }
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
+    }
+
+    public int countUnusedOneTimePreKeys() {
+        try (Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM OneTimePreKey WHERE used = 0", null)) {
+            cursor.moveToFirst();
+            return cursor.getInt(0);
+        }
+    }
+
+    /**
+     * Hands out one unused one-time prekey for a bundle we're about to
+     * publish, marking it used immediately -- a bundle is meant to be
+     * fetched once. Returns null if the pool is empty (X3DH still works
+     * without one, just with one fewer DH term -- see X3DH.initiate).
+     * If publishing this bundle never actually reaches anyone (e.g. the
+     * transport fails), this key is simply wasted; that's the same
+     * tradeoff Signal's own server makes, and it's fine as long as the
+     * pool gets replenished (not wired up yet).
+     */
+    public OneTimePreKey claimOneTimePreKeyForBundle() {
+        try (Cursor cursor = db.query("OneTimePreKey", null, "used = 0", null, null, null, "keyId ASC", "1")) {
+            if (!cursor.moveToFirst()) return null;
+            int keyId = cursor.getInt(cursor.getColumnIndexOrThrow("keyId"));
+            byte[] publicKey = cursor.getBlob(cursor.getColumnIndexOrThrow("publicKey"));
+            byte[] privateKey = cursor.getBlob(cursor.getColumnIndexOrThrow("privateKey"));
+            ContentValues values = new ContentValues();
+            values.put("used", 1);
+            db.update("OneTimePreKey", values, "keyId = ?", new String[]{String.valueOf(keyId)});
+            return new OneTimePreKey(keyId, new X25519KeyPair(privateKey, publicKey));
+        }
+    }
+
+    /**
+     * For the responder side of a handshake: fetches the private key of a
+     * one-time prekey named in an incoming X3DHInitialMessage. Returns null
+     * if it's already been consumed or never existed (e.g. a replayed or
+     * duplicate initial message) -- see X3DH.respond's note on what to do
+     * with that null.
+     */
+    public OneTimePreKey getOneTimePreKeyIfUnused(int keyId) {
+        try (Cursor cursor = db.query("OneTimePreKey", null, "keyId = ? AND used = 0",
+                new String[]{String.valueOf(keyId)}, null, null, null)) {
+            if (!cursor.moveToFirst()) return null;
+            byte[] publicKey = cursor.getBlob(cursor.getColumnIndexOrThrow("publicKey"));
+            byte[] privateKey = cursor.getBlob(cursor.getColumnIndexOrThrow("privateKey"));
+            return new OneTimePreKey(keyId, new X25519KeyPair(privateKey, publicKey));
+        }
+    }
+
+    public void markOneTimePreKeyUsed(int keyId) {
+        ContentValues values = new ContentValues();
+        values.put("used", 1);
+        db.update("OneTimePreKey", values, "keyId = ?", new String[]{String.valueOf(keyId)});
+    }
+
+    /**
+     * Assembles the bundle we'd publish for others to fetch. Returns null
+     * if ensurePreKeysExist() hasn't run yet. identityKeyX25519 isn't
+     * stored anywhere -- it's cheap to recompute deterministically via
+     * IdentityGenerator.deriveX25519IdentityKeys(identity), so the caller
+     * passes it in rather than this method re-deriving it on every call.
+     */
+    public PreKeyBundle buildOurPreKeyBundle(Identity identity, byte[] identityKeyX25519) {
+        SignedPreKey signedPreKey = getSignedPreKey();
+        if (signedPreKey == null) return null;
+        OneTimePreKey oneTimePreKey = claimOneTimePreKeyForBundle();
+        return new PreKeyBundle(
+                identity.peerId,
+                identity.publicKey,
+                identityKeyX25519,
+                signedPreKey.keyId,
+                signedPreKey.keyPair.publicKey,
+                signedPreKey.signature,
+                oneTimePreKey == null ? null : oneTimePreKey.keyId,
+                oneTimePreKey == null ? null : oneTimePreKey.keyPair.publicKey
+        );
     }
 
     // ---- Messages ----

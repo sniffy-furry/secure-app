@@ -68,6 +68,7 @@ public class RecoveryPhraseActivity extends AppCompatActivity {
                 Identity identity = IdentityGenerator.fromSeed(entropy);
                 NulChatRepository repo = AppDatabase.getOrOpen(getApplicationContext());
                 repo.saveIdentity(identity, "");
+                repo.ensurePreKeysExist(identity);
                 runOnUiThread(() -> {
                     Intent intent = new Intent(this, MainActivity.class);
                     intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);

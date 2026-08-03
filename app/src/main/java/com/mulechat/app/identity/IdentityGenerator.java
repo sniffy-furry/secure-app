@@ -2,6 +2,7 @@ package com.mulechat.app.identity;
 
 import com.google.crypto.tink.subtle.Ed25519Sign;
 import com.mulechat.app.crypto.CryptoPrimitives;
+import com.mulechat.app.crypto.X25519KeyPair;
 
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
@@ -35,6 +36,21 @@ public final class IdentityGenerator {
         byte[] publicKey = keyPair.getPublicKey();
         byte[] privateKey = keyPair.getPrivateKey();
         return new Identity(publicKey, privateKey, derivePeerId(publicKey));
+    }
+
+    /**
+     * Derives a companion X25519 keypair for Diffie-Hellman (used by
+     * crypto.X3DH), from the same Ed25519 private seed as the signing
+     * identity — so it's recoverable from the same 24-word phrase without
+     * storing anything extra. This is deliberately a *separate* key from
+     * the Ed25519 signing key, not a reinterpretation of it: Ed25519 and
+     * X25519 are different key types on the same curve family, and Tink
+     * doesn't expose a safe conversion between them.
+     */
+    public static X25519KeyPair deriveX25519IdentityKeys(Identity identity) throws GeneralSecurityException {
+        byte[] secret = CryptoPrimitives.deriveKey(identity.privateKey, new byte[32], "nulchat-x25519-identity", 32);
+        byte[] publicKey = CryptoPrimitives.x25519PublicFromSecret(secret);
+        return new X25519KeyPair(secret, publicKey);
     }
 
     /** peerId = base32(sha256(publicKey)[0:12]) — short, shareable, unique. */

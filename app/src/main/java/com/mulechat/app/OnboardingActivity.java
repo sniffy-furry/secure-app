@@ -112,6 +112,7 @@ public class OnboardingActivity extends AppCompatActivity {
                 Identity identity = IdentityGenerator.fromSeed(entropy);
                 NulChatRepository repo = AppDatabase.getOrOpen(getApplicationContext());
                 repo.saveIdentity(identity, "");
+                repo.ensurePreKeysExist(identity);
                 runOnUiThread(this::goToMain);
             } catch (IllegalArgumentException e) {
                 runOnUiThread(() -> {
