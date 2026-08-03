@@ -8,8 +8,16 @@
     <string name="onboarding_import">Import existing identity</string>
     <string name="onboarding_disclaimer">UI shell only — key generation, recovery phrases, and networking are not wired up yet.</string>
     <string name="import_dialog_title">Paste recovery phrase</string>
-    <string name="import_dialog_hint">word word word word …</string>
+    <string name="import_dialog_hint">24 words, separated by spaces</string>
     <string name="import_dialog_confirm">Restore</string>
+    <string name="import_error_invalid">That doesn\'t look like a valid 24-word phrase (wrong word or checksum mismatch)</string>
+
+    <string name="recovery_title">Your recovery phrase</string>
+    <string name="recovery_warning">Write these 24 words down in order and keep them somewhere safe and offline. Anyone with this phrase can recover your identity. It is never shown again after this screen.</string>
+    <string name="recovery_confirm_checkbox">I\'ve written down my recovery phrase</string>
+    <string name="recovery_continue">Continue</string>
+
+    <string name="onboarding_error_generic">Something went wrong setting up your identity. Try again.</string>
 
     <string name="tab_contacts">Contacts</string>
     <string name="tab_profile">Profile</string>

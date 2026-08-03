@@ -3,22 +3,16 @@ package com.mulechat.app.util;
 import android.content.Context;
 import android.content.SharedPreferences;
 
-import java.security.SecureRandom;
-
 /**
- * Local-only storage for shell/demo identity, profile, and settings fields.
- *
- * IMPORTANT: the "peer id" generated here is a random placeholder, NOT
- * derived from a real Ed25519 keypair, and "import" does not actually
- * restore anything -- it just fabricates a new placeholder id so the UI
- * has something to display. See the plan's identity section for the real
- * design (Ed25519 keypair, blake3(pubkey) peer id, encrypted seed-phrase
- * export/import). Nothing in this class is cryptography.
+ * Local-only storage for profile display fields (nickname, bio, status,
+ * accent color) and relay UI settings. NOT the cryptographic identity --
+ * that's real now and lives in the encrypted DB, see
+ * storage.AppDatabase / data.NulChatRepository.getIdentity(). This class
+ * only ever held UI-layer prefs; it used to also fake a placeholder peer id
+ * before onboarding was wired to real key generation.
  */
 public class IdentityStore {
     private static final String PREFS = "mulechat_shell_prefs";
-    private static final String KEY_PEER_ID = "peer_id_placeholder";
-    private static final String KEY_HAS_IDENTITY = "has_identity";
     private static final String KEY_NICKNAME = "nickname";
     private static final String KEY_BIO = "bio";
     private static final String KEY_STATUS = "status";
@@ -34,34 +28,6 @@ public class IdentityStore {
     public IdentityStore(Context context) {
         prefs = context.getApplicationContext()
                 .getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-    }
-
-    public boolean hasIdentity() {
-        return prefs.getBoolean(KEY_HAS_IDENTITY, false);
-    }
-
-    /** Generates a placeholder peer id and marks identity as "created." */
-    public String createPlaceholderIdentity() {
-        String peerId = randomHex(16);
-        prefs.edit()
-                .putString(KEY_PEER_ID, peerId)
-                .putBoolean(KEY_HAS_IDENTITY, true)
-                .apply();
-        return peerId;
-    }
-
-    /** Shell-only "import": fabricates a placeholder id, does not actually recover anything. */
-    public String importPlaceholderIdentity(String pastedSeedPhrase) {
-        String peerId = "imported-" + randomHex(8);
-        prefs.edit()
-                .putString(KEY_PEER_ID, peerId)
-                .putBoolean(KEY_HAS_IDENTITY, true)
-                .apply();
-        return peerId;
-    }
-
-    public String getPeerId() {
-        return prefs.getString(KEY_PEER_ID, "");
     }
 
     public String getNickname() { return prefs.getString(KEY_NICKNAME, ""); }
@@ -90,15 +56,4 @@ public class IdentityStore {
 
     public int getRelayMinBattery() { return prefs.getInt(KEY_RELAY_MIN_BATTERY, 20); }
     public void setRelayMinBattery(int v) { prefs.edit().putInt(KEY_RELAY_MIN_BATTERY, v).apply(); }
-
-    private static String randomHex(int numBytes) {
-        SecureRandom random = new SecureRandom();
-        byte[] buf = new byte[numBytes];
-        random.nextBytes(buf);
-        StringBuilder sb = new StringBuilder();
-        for (byte b : buf) {
-            sb.append(String.format("%02x", b));
-        }
-        return sb.toString();
-    }
 }

@@ -15,6 +15,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import com.mulechat.app.storage.AppDatabase;
 import com.mulechat.app.util.IdentityStore;
 
 import java.util.Arrays;
@@ -42,7 +43,20 @@ public class ProfileFragment extends Fragment {
         identityStore = new IdentityStore(requireContext());
 
         TextView peerIdView = view.findViewById(R.id.text_peer_id);
-        peerIdView.setText(identityStore.getPeerId());
+        peerIdView.setText("…");
+        new Thread(() -> {
+            try {
+                String peerId = AppDatabase.getOrOpen(requireContext().getApplicationContext())
+                        .getIdentity().peerId;
+                requireActivity().runOnUiThread(() -> {
+                    if (isAdded()) peerIdView.setText(peerId);
+                });
+            } catch (Exception e) {
+                requireActivity().runOnUiThread(() -> {
+                    if (isAdded()) peerIdView.setText("—");
+                });
+            }
+        }).start();
 
         EditText nicknameInput = view.findViewById(R.id.input_nickname);
         nicknameInput.setText(identityStore.getNickname());
