@@ -79,5 +79,27 @@
             android:layout_height="wrap_content"
             android:text="@string/settings_note"/>
 
+        <TextView
+            style="@style/Label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="12dp"
+            android:text="@string/settings_debug_header"/>
+
+        <com.google.android.material.button.MaterialButton
+            style="@style/PrimaryButton"
+            android:id="@+id/btn_run_x3dh_selftest"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="@string/settings_debug_run_x3dh_selftest"/>
+
+        <TextView
+            style="@style/ShellNote"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/settings_debug_selftest_note"/>
+
     </LinearLayout>
 </ScrollView>

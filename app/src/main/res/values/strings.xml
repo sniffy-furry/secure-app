@@ -48,4 +48,10 @@
     <string name="settings_relay_max_storage">Max storage for others\' envelopes (MB)</string>
     <string name="settings_relay_min_battery">Auto-pause below this battery %%</string>
     <string name="settings_note">These controls aren\'t connected to a real relay yet — see the plan\'s relay section for the intended behavior.</string>
+
+    <string name="settings_debug_header">Debug</string>
+    <string name="settings_debug_run_x3dh_selftest">Run X3DH self-test</string>
+    <string name="settings_debug_selftest_note">Simulates a full handshake between two local identities, entirely on this device — no network involved. Remove once the transport layer exists.</string>
+    <string name="settings_debug_selftest_pass_title">X3DH self-test passed</string>
+    <string name="settings_debug_selftest_fail_title">X3DH self-test FAILED</string>
 </resources>
