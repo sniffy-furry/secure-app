@@ -348,6 +348,63 @@ public final class NulChatRepository {
         return result;
     }
 
+    /** All messages, across all peers -- for backup.BackupExporter. Order doesn't matter for that use. */
+    public List<DirectMessage> getAllMessages() {
+        List<DirectMessage> result = new ArrayList<>();
+        try (Cursor cursor = db.query("Message", null, null, null, null, null, null)) {
+            while (cursor.moveToNext()) {
+                result.add(new DirectMessage(
+                        cursor.getString(cursor.getColumnIndexOrThrow("id")),
+                        cursor.getString(cursor.getColumnIndexOrThrow("peerId")),
+                        cursor.getString(cursor.getColumnIndexOrThrow("body")),
+                        cursor.getInt(cursor.getColumnIndexOrThrow("outgoing")) == 1,
+                        cursor.getLong(cursor.getColumnIndexOrThrow("sentAtEpochMs")),
+                        cursor.getString(cursor.getColumnIndexOrThrow("deliveryState"))
+                ));
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Inserts a message restored from a backup, unless a message with the
+     * same id is already present -- makes restoring the same backup twice
+     * (or restoring into a device that already has some overlapping
+     * history) safe to just re-run rather than something that needs its
+     * own "already restored?" bookkeeping.
+     */
+    public void restoreMessageIfAbsent(DirectMessage message) {
+        ContentValues values = new ContentValues();
+        values.put("id", message.id);
+        values.put("peerId", message.peerId);
+        values.put("body", message.body);
+        values.put("outgoing", message.outgoing ? 1 : 0);
+        values.put("sentAtEpochMs", message.sentAtEpochMs);
+        values.put("deliveryState", message.deliveryState);
+        db.insertWithOnConflict("Message", null, values, SQLiteDatabase.CONFLICT_IGNORE);
+    }
+
+    /**
+     * Restores a peer from a backup: inserts it if new, or fills in
+     * whatever the existing row is missing (e.g. an x25519IdentityKey we
+     * hadn't pinned yet) without clobbering anything already there.
+     */
+    public void restorePeer(PeerContact peer) {
+        PeerContact existing = getPeer(peer.peerId);
+        if (existing == null) {
+            ContentValues values = new ContentValues();
+            values.put("peerId", peer.peerId);
+            values.put("displayName", peer.displayName);
+            values.put("ed25519PublicKey", peer.ed25519PublicKey);
+            if (peer.x25519IdentityKey != null) values.put("x25519IdentityKey", peer.x25519IdentityKey);
+            if (peer.lastKnownHost != null) values.put("lastKnownHost", peer.lastKnownHost);
+            if (peer.lastKnownPort != null) values.put("lastKnownPort", peer.lastKnownPort);
+            db.insert("Peer", null, values);
+        } else if (existing.x25519IdentityKey == null && peer.x25519IdentityKey != null) {
+            pinPeerX25519IdentityKey(peer.peerId, peer.x25519IdentityKey);
+        }
+    }
+
     private static String randomId() {
         byte[] bytes = new byte[16];
         new SecureRandom().nextBytes(bytes);

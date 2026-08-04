@@ -35,20 +35,23 @@ configurations.all {
 }
 
 dependencies {
+    implementation project(':core')
+
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'androidx.fragment:fragment:1.6.2'
+    implementation 'androidx.activity:activity:1.8.2'
     implementation 'com.google.android.material:material:1.11.0'
     implementation 'androidx.recyclerview:recyclerview:1.3.2'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-
-    // Crypto primitives (Apache 2.0 -- no AGPL issue, unlike libsignal).
-    // API used (X25519 / Hkdf / Ed25519Sign / ChaCha20Poly1305, all in
-    // com.google.crypto.tink.subtle) has been stable across many releases.
-    // If this exact version is gone from Maven Central, bump it.
-    implementation 'com.google.crypto.tink:tink-android:1.15.0'
 
     // Encrypted local storage.
     implementation 'net.zetetic:android-database-sqlcipher:4.5.4'
     implementation 'androidx.sqlite:sqlite:2.4.0'
     implementation 'androidx.security:security-crypto:1.1.0-alpha06'
+
+    // Periodic backup (BackupWorker/BackupScheduler): WorkManager for the
+    // schedule, DocumentFile for reading/writing inside the SAF folder tree
+    // the user picks in Settings.
+    implementation 'androidx.work:work-runtime:2.9.0'
+    implementation 'androidx.documentfile:documentfile:1.0.1'
 }

@@ -22,6 +22,8 @@ public class IdentityStore {
     private static final String KEY_RELAY_CHARGING_ONLY = "relay_charging_only";
     private static final String KEY_RELAY_MAX_MB = "relay_max_mb";
     private static final String KEY_RELAY_MIN_BATTERY = "relay_min_battery";
+    private static final String KEY_BACKUP_ENABLED = "backup_enabled";
+    private static final String KEY_BACKUP_FOLDER_URI = "backup_folder_uri";
 
     private final SharedPreferences prefs;
 
@@ -56,4 +58,11 @@ public class IdentityStore {
 
     public int getRelayMinBattery() { return prefs.getInt(KEY_RELAY_MIN_BATTERY, 20); }
     public void setRelayMinBattery(int v) { prefs.edit().putInt(KEY_RELAY_MIN_BATTERY, v).apply(); }
+
+    public boolean isBackupEnabled() { return prefs.getBoolean(KEY_BACKUP_ENABLED, false); }
+    public void setBackupEnabled(boolean v) { prefs.edit().putBoolean(KEY_BACKUP_ENABLED, v).apply(); }
+
+    /** The SAF tree URI (as a string) the user picked for backups, or null if none chosen yet. */
+    public String getBackupFolderUri() { return prefs.getString(KEY_BACKUP_FOLDER_URI, null); }
+    public void setBackupFolderUri(String v) { prefs.edit().putString(KEY_BACKUP_FOLDER_URI, v).apply(); }
 }
